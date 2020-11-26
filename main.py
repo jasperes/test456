@@ -3,6 +3,7 @@
 import os
 import pymysql
 from flask import Flask, render_template
+from flask_sqlalchemy import SQLAlchemy
 
 MY_DB="mysql://sandy:secret@myhost1:1111/db"
 API_PASSWORD="mycoolpassword"
@@ -36,6 +37,10 @@ MYCOOLSTRING13="b4dee91e420c89bd61544979b66762ec96681dd0def557ba"
 # Whirlpool
 MYCOOLSTRING14="083cfa8823dcdae0455c43aea03ad971f8fc79004c8efe90a0581fbe14e5cad10171134a8fd684c18dfc1b3fd5d8b9573c662574e3da7ab61e818236d0443cf7"
 
+app = Flask(__name__)
+db = SQLAlchemy(app)
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL")
+
 def run(name):
     db = pymysql.connect("localhost","root","root","mydb" )
     cur = db.cursor()
@@ -43,17 +48,27 @@ def run(name):
     db.close()
 
 def eval_injection(a, b):
-  return eval("%s + %s" % (a, b))
+    return eval("%s + %s" % (a, b))
 
 def exec_injection(a, b):
-  return exec("%s + %s" % (a, b))
+    return exec("%s + %s" % (a, b))
 
 def generate_invoice_pdf(email, payment_data):
-  os.system('my_pdf_tool %s %s' % (email, payment_data))  
+    os.system('my_pdf_tool %s %s' % (email, payment_data))  
 
 @app.route('/<username>')
 def home(username):
-   return render_template('index.html', title='Home', user={'username': username})
+    return render_template('index.html', title='Home', user={'username': username})
+
+@app.route("/<id>", methods = ["GET"])
+def get_user(id):
+    result = db.session.execute("SELECT * FROM USER WHERE NAME = '" + id + "';")
+    return result
+
+@app.route("/secret/<qwerty>", methods = ["GET"])
+def get_user(qwerty):
+    result = db.session.execute("SELECT * FROM SECRET_DATA WHERE DESCRIPTION like '%s'" % qwerty)
+    return result
 
 if __name__ == '__main__':
-   app.run()
+    app.run()
